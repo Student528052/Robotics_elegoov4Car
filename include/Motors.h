@@ -1,10 +1,43 @@
+/**!
+ * @file Camera.h 
+ * @author Aleksandar Dikov (528052)
+ * @version 1.0
+ * @date 2025-06-04
+ * @details This class holds all the functions for working with the Camera of the Elegoo smart car 
+ * @copyright GNU Public Licence
+ */
 #pragma once
  #include <Arduino.h> 
+ /**
+  * @class Motors
+  * Class containing the basic functionality for controlling the Motors of the Elegoo smartcar
+  */
 class Motors
 {
 public:
+
+/**
+ * @brief 
+ * Motor Initialization function. 
+ * 
+ */
   void Motor_init(void);
 
+  /**
+   * @brief 
+   * Sets the direction and speed of all the motors 
+   * 
+   * @param direction_A 
+   * Group A motor Direction
+   * @param speed_A 
+   * Group A speed ( from 0 to 255)
+   * @param direction_B 
+   * Group B motor Direction
+   * @param speed_B 
+   * Group B speed ( from 0 to 255)
+   * @param controlED 
+   * Control group LED
+   */
   void Set_motor(boolean direction_A, uint8_t speed_A, //A组电机参数
                                      boolean direction_B, uint8_t speed_B, //B组电机参数
                                      boolean controlED                     //AB使能允许 true

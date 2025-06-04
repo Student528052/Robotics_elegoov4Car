@@ -1,7 +1,7 @@
-#include "Motors.h"
-#include "IR_sensors.h"
-#include "Ultrasonic.h"
-#include "Motor_control.cpp"
+#include "include/Motors.h"
+#include "include/IR_sensors.h"
+#include "include/Ultrasonic.h"
+#include "src/Motor_control.cpp"
 #include <Arduino.h>
 #define speed 200
 #define BLACK 500
