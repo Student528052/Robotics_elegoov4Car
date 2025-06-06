@@ -7,6 +7,10 @@
  * @copyright GNU Public Licence
  */
 #pragma once
+
+const char * WIFI_SSID = " Bruh"; 
+const char * WIFI_PSWD = "12345677";  //TODO 
+
 class Camera{
 
     public: 
