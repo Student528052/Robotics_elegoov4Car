@@ -4,8 +4,8 @@
 #include "src/Motor_control.cpp"
 #include <Servo.h>
 #include <Arduino.h>
-#define speed 55
-#define BLACK 500
+#define speed 60
+#define BLACK 530
 #define WHITE 200
 
 Motors motors;
@@ -41,6 +41,7 @@ void check_for_path(){
    auto  center = IR.IR_Read_M();
    auto direction = M_Control.Motion_Control; 
 
+   print_data(); 
   if (  left >=BLACK && center >=BLACK &  right >= BLACK){ //0 0 0 
      direction = ControlCommands::Forward; 
      Drive(direction, speed); 
@@ -92,6 +93,7 @@ void check_for_path(){
        }
      rad_time = rad_time + 1; 
      delay(rad_time * 100); 
+   print_data(); 
    }
 
   }
@@ -108,39 +110,53 @@ THIS FUNCTION ASSUMES THAT THE SERVO NEVER TRIES TO EXCEED ABOVE 180 DEGREES
 
 */
 void check_for_object(){
-   auto distance = US.Ultrasonic_Read(); 
+   unsigned int distance = US.Ultrasonic_Read(); 
    Serial.print("DISTANCE : "); 
-   Serial.print(distance); 
-   if (distance <= 15 && distance >=10 ){
+   Serial.println(distance); 
+   int step = 0; 
+   delay(10);  //needed for the ultrasonic sensor to reset.
+   if (distance <= 14 && distance >=10 && distance != 0 ){
       int pos = 90; //servo position
       Drive(ControlCommands::stop_it, 0); 
       delay(500); 
       bool object_found = (distance <=20) ? true: false; 
+      int obstacle_speed = speed + 10; 
 
       while (object_found){
-         Drive(ControlCommands::Right, speed + 15); 
-         delay(300); 
-         Drive(ControlCommands::Forward, speed + 15); 
+         unsigned int distance = US.Ultrasonic_Read(); //refresh value
+         
+
+         Drive(ControlCommands::Right, obstacle_speed); 
          delay(400); 
-         Drive(ControlCommands::stop_it, 0); 
-         delay(100); 
+         Drive(ControlCommands::Forward, obstacle_speed); 
+         delay(450); 
+         step++; 
+         pos +=15; 
 
          //moving the angle of the ultrasonic sensor
          if (pos >180) pos = 180; 
          servo.write(pos); 
-         pos +=10; 
-         delay(100); 
+         
 
-         object_found = (US.Ultrasonic_Read() <=20) ? true: false; //TODO: change this while making sure to use Ultrasonic_Read() as little as possible. 
+         object_found = (distance <=20) ? true: false; 
       }
+      //recenter
+      Drive(ControlCommands::Left, speed); 
+         delay(325*step); 
+      //once it has stopped finding the object, return to the original line 
       while (pos >90){
-         Drive(ControlCommands::Left, speed); 
-         delay(200); 
-         Drive(ControlCommands::Forward, speed); 
-         delay(200); 
+         Drive(ControlCommands::Forward, obstacle_speed); 
+         delay(435); 
+         Drive(ControlCommands::Left, obstacle_speed); 
+         delay(350); 
          pos -=10; 
       }
-         servo.write(pos); 
+         Drive(ControlCommands::Forward, obstacle_speed); 
+         delay(435); 
+      //recenter itself on the course
+      Drive(ControlCommands::Right, speed); 
+         delay(325*step); 
+         servo.write(90); 
 
    }else{
       Serial.print("No object!"); 
@@ -152,6 +168,7 @@ void check_for_object(){
 void print_data(){
  Serial.print(" Ultrasonic:"); 
  Serial.print(US.Ultrasonic_Read()); 
+ delay(20); 
 
   Serial.print("\n Left");
   Serial.print(IR.IR_Read_L());
@@ -182,6 +199,5 @@ void loop() {
   check_for_path(); 
   check_for_object(); 
 // Serial_monitor_stop(); //testing
-  //print_data(); 
 
 }
