@@ -13,7 +13,14 @@ IR_sensors IR;
 Motor_Control M_Control; 
 Ultrasonic US; 
 Servo servo; 
-
+//TODO: use this instead of define
+enum colors{
+   black = 530, 
+   RED = 1, 
+   BLUE = 2, 
+   GREEN = 3, 
+   white = 4, 
+};
    
 
 //Serial Monitor stop command to stop the motors for testing

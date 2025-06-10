@@ -2,10 +2,9 @@
 //#include <TFT_eSPI.h>
 #include <Arduino.h>
 /*UNCOMMENT FOR CAMERA UPLOAD*/
-/*
 void setup(){
 
-    Serial.begin(115200); 
+    Serial.begin(9600); 
 }; 
 
 void loop(){
@@ -13,4 +12,3 @@ void loop(){
 
 };
 
-*/
