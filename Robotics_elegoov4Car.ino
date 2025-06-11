@@ -4,7 +4,9 @@
 #include "src/Motor_control.cpp"
 #include <Servo.h>
 #include <Arduino.h>
+
 #define speed 60
+#define CAMERA_DELAY 500
 
 Motors motors;
 IR_sensors IR; 
@@ -43,6 +45,23 @@ void Serial_monitor_stop(){
   }
 
   }
+
+}
+void Read_Camera_Imput(){
+   
+   while (Serial.available()>0){
+   char input = Serial.read(); 
+   if(input == 'r'){
+      Drive(ControlCommands::stop_it, 0); 
+      delay(CAMERA_DELAY); 
+      Serial.print("RED LIGHT"); 
+   }
+      input = Serial.read(); 
+      if(input == 'g'){
+         Serial.flush();
+       break; 
+      }
+   }
 
 }
 
@@ -261,12 +280,6 @@ void print_data(){
 }
 
 
-
-void Standby(){
-   Drive(ControlCommands::stop_it, 0); 
-   Serial.println("STOPPED!!!"); 
-   delay(300); 
-}
 /* ---------------SETUP AND LOOP---------------- */
 void setup() {
 
@@ -274,6 +287,7 @@ void setup() {
   IR.IR_init(); 
   US.Ultrasonic_Init(); 
   Serial.begin(9600); 
+  Serial.setTimeout(100);
   Drive(ControlCommands::stop_it, 0); 
   servo.attach(10); 
   servo.write(90); //position the ultrasonic at the "center"
@@ -285,7 +299,9 @@ void loop() {
 
   check_for_path(); 
   check_for_object(); 
+  Read_Camera_Imput(); 
   print_data(); 
  Serial_monitor_stop(); //testing
+ Serial.flush(); 
 
 }
