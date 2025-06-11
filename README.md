@@ -9,6 +9,7 @@ The main method used to build and upload the code to the ElegooV4Car is by using
  - Dependencies
  > You need to have installed the Arduino AVR Boards package to be able to Select the Arduino UNO board option. 
  > You also need the Servo Libarry installed: 
+ >
  > ![Arduino Servo Library](./doc//ArduinoIDELib.png)
  - Configuration 
  > Simply choose the **Arduino UNO** board option, along with the needed COM/TTY port

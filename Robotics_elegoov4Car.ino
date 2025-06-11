@@ -5,8 +5,6 @@
 #include <Servo.h>
 #include <Arduino.h>
 #define speed 60
-#define BLACK 530
-#define WHITE 200
 
 Motors motors;
 IR_sensors IR; 
@@ -15,12 +13,18 @@ Ultrasonic US;
 Servo servo; 
 //TODO: use this instead of define
 enum colors{
-   black = 530, 
-   RED = 1, 
-   BLUE = 2, 
-   GREEN = 3, 
-   white = 4, 
+   BLACK_min = 690, 
+   BLACK_max = 1200, 
+   RED_min = 60, 
+   RED_max = 200, 
+   GREEN_min = 200, 
+   GREEN_max = 400, 
+   BLUE_min = 400,
+   BLUE_max = 690,
+   WHITE = 40, 
 };
+auto line_max = colors::BLUE_max; //change this to make sure it  follow a specific line. 
+auto line_min = colors::BLUE_min; //change this to make sure it  follow a specific line. 
    
 
 //Serial Monitor stop command to stop the motors for testing
@@ -35,45 +39,89 @@ void Serial_monitor_stop(){
    Serial.println("STOPPED");
    while(1){ 
    Drive(direction, 0); 
+   print_data(); 
   }
 
   }
 
 }
 
+//function for checking weather the car is on the right path. 
+//Since WHITE is the lowest value, we can assume that any value below the desired line
+//is going off course
+int line_direction(float left, float center, float right, colors line_min, colors line_max){
+  bool Lir = left >= line_min && left <= line_max; //left in range
+  bool Cir = center >= line_min && center <= line_max; // Center in range
+  bool Rir = right >= line_min && right <= line_max; //Right in range
+  if( Lir && Cir && Rir ) return 0; // 0 0 0 
+  else if ( Lir && Cir && !Rir) return 1; // 0 0 1 
+  else if ( !Lir && Cir && Rir) return 4; // 1 0 0 
+  else if ( Lir && !Cir && !Rir) return 3; // 0 1 1 
+  else if ( !Lir && !Cir && Rir) return 6; // 1 1 0
+  else if ( Lir && !Cir && Rir) return 2; // 0 1 0  assume forward
+  else if (!Lir && Cir && !Rir) return 5; // 1 0 1  assume forward
+  else return 8; //lost in path
+
+} 
+void Drive_direction(int i){
+
+   auto direction = M_Control.Motion_Control;  
+   auto turning_speed = speed -5; 
+   switch (i)
+   {
+      case 0: //0 0 0 
+         direction = ControlCommands::Forward; 
+         Drive(direction, speed); 
+         break;
+      case 1: //0 0 1 
+         direction = ControlCommands::Left; 
+         Drive(direction, turning_speed); 
+         break; 
+      case 4: //1 0  
+         direction = ControlCommands::Right; 
+         Drive(direction, turning_speed); 
+         break; 
+      case 3: //0 1 1 
+         direction = ControlCommands::Left; 
+         Drive(direction, turning_speed); 
+         break;
+      case 6: //1 1 0 
+         direction = ControlCommands::Right; 
+         Drive(direction, turning_speed); 
+         break;
+      case 2: //0 1 0 assume forward. 
+         direction = ControlCommands::Forward; 
+         Drive(direction, speed); 
+         break;
+      case 5: //1 0 1 assume forward. 
+         direction = ControlCommands::Forward; 
+         Drive(direction, speed); 
+         break;
+      
+      default:
+         break;
+      }
+   }
 void check_for_path(){
 
    auto  left  =  IR.IR_Read_L();
-   auto  right = IR.IR_Read_R();
    auto  center = IR.IR_Read_M();
+   auto  right = IR.IR_Read_R();
+   if((left >=50 && left <= 500) && ( center >=50 && center <= 500) &&  right >= 300) right  = right - 200; 
    auto direction = M_Control.Motion_Control; 
+   int i = line_direction(left, center, right, colors::BLACK_min, colors::BLACK_max); 
+   int j  = line_direction(left, center, right, line_min, line_max); 
+   Serial.print("Direction: "); 
+   Serial.print(i); 
+   Serial.print(" "); 
+   Serial.print(j); 
+   if( j != 8){
+      Drive_direction(j); 
+   }else if( i != 8){//black line
+      Drive_direction(i); 
+   
 
-   print_data(); 
-  if (  left >=BLACK && center >=BLACK &  right >= BLACK){ //0 0 0 
-     direction = ControlCommands::Forward; 
-     Drive(direction, speed); 
-
-  }else if ( left >=BLACK && center >=BLACK && right <=BLACK){ // 0 0 1
-     direction = ControlCommands::Left; 
-     Drive(direction, speed);
-
-  }else if (  left <=BLACK && center >=BLACK && right >=BLACK){ // 1 0 0 
-     direction = ControlCommands::Right; 
-     Drive(direction, speed);
-
-  }else if ( left >=BLACK && center <=BLACK && right <=BLACK){ // 0 1 1
-     direction = ControlCommands::Left; 
-     Drive(direction, speed);
-
-  }else if (  left <=BLACK && center <=BLACK && right >=BLACK){ // 1 1 0 
-     direction = ControlCommands::Right; 
-     Drive(direction, speed);
-
-  }else if (  left >=BLACK && center <=BLACK && right >=BLACK){ // 0 1 0  : assume forward
-     direction = ControlCommands::Forward; 
-     Drive(direction, speed);
-  
-  }else{ //lost in path, hardcoded so that it checks left and right for path
+  }else if ( i == 8 &&  j == 8){ //lost in path, hardcoded so that it checks left and right for path
    //I could add this to a function
       //stop and go forward to center yourself in on the angle(hardcoded)
      direction = ControlCommands::stop_it; 
@@ -81,29 +129,48 @@ void check_for_path(){
      Drive(direction, 50); 
      delay(500); 
      Drive(ControlCommands::Forward, 50); 
-     delay(200); 
+     delay(350); 
      Drive(ControlCommands::stop_it, 50); 
      delay(100); 
 
 
      //turn left and right incrementally until you find black
       int rad_time = 0; 
-   while (IR.IR_Read_L() <=BLACK && IR.IR_Read_M() <=BLACK && IR.IR_Read_R() <=BLACK){
+   while ((left <=BLACK_min && center <=BLACK_min && right <=BLACK_min) &&
+    (left <=line_min && center <=line_min && right <=line_min) //TODO: CHANGE THIS
+   ){
 
-      if(rad_time % 2 == 0){ 
+      delay(100); 
+    left  =  IR.IR_Read_L();
+    center = IR.IR_Read_M();
+    right = IR.IR_Read_R();
+   auto Mean = (left + right + center )/ 3; 
+   if(Mean <= colors::WHITE) break; 
+   if((left >=50 && left <= 500) && ( center >=50 && center <= 500) &&  right >= 300) right  = right - 200; 
+   if(line_direction(left, center, right, line_min, line_max) !=8 || line_direction(left, center, right, colors::BLACK_min, colors::BLACK_max) !=8) break; 
+
+    Mean = (left + right + center )/ 3; 
+   
+
+      if(rad_time % 2 == 0){
          direction = ControlCommands::Right; 
-         Drive(direction, speed); 
+         Drive(direction, speed + 15); 
       }
 
       else {direction = ControlCommands::Left;
-         Drive(direction, speed); 
+         Drive(direction, speed+15); 
        }
+       
      rad_time = rad_time + 1; 
-     delay(rad_time * 100); 
-   print_data(); 
+     delay(rad_time * 50); 
+         Drive(ControlCommands::stop_it, 0); 
+         delay(300); 
+      print_data(); 
    }
 
   }
+  delay(50); //needed for IR? 
+  
 }
 
 
@@ -119,7 +186,7 @@ THIS FUNCTION ASSUMES THAT THE SERVO NEVER TRIES TO EXCEED ABOVE 180 DEGREES
 void check_for_object(){
    unsigned int distance = US.Ultrasonic_Read(); 
    Serial.print("DISTANCE : "); 
-   Serial.println(distance); 
+   Serial.print(distance); 
    int step = 0; 
    delay(10);  //needed for the ultrasonic sensor to reset.
    if (distance <= 14 && distance >=10 && distance != 0 ){
@@ -177,16 +244,29 @@ void print_data(){
  Serial.print(US.Ultrasonic_Read()); 
  delay(20); 
 
-  Serial.print("\n Left");
-  Serial.print(IR.IR_Read_L());
-  Serial.print("  Medium ");
-  Serial.print(IR.IR_Read_M());
-  Serial.print("  Right ");
-  Serial.print(IR.IR_Read_R());
+   auto  left  =  IR.IR_Read_L();
+   auto  center = IR.IR_Read_M();
+   auto  right = IR.IR_Read_R();
+   if((left >=50 && left <= 500) && ( center >=50 && center <= 500) &&  right >= 300) right  = right - 200; 
+  Serial.print("\n Left: ");
+  Serial.print(left);
+  Serial.print("  Medium: ");
+  Serial.print(center);
+  Serial.print(" Right: ");
+  Serial.print(right);
+  auto Mean = (left + right + center )/ 3; 
+  Serial.print("   Mean: "); 
+  Serial.print(Mean); 
+  Serial.print("  ");
 }
 
 
 
+void Standby(){
+   Drive(ControlCommands::stop_it, 0); 
+   Serial.println("STOPPED!!!"); 
+   delay(300); 
+}
 /* ---------------SETUP AND LOOP---------------- */
 void setup() {
 
@@ -205,6 +285,7 @@ void loop() {
 
   check_for_path(); 
   check_for_object(); 
-// Serial_monitor_stop(); //testing
+  print_data(); 
+ Serial_monitor_stop(); //testing
 
 }
