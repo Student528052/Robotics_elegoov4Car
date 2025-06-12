@@ -47,27 +47,41 @@ void Serial_monitor_stop(){
   }
 
 }
-void Read_Camera_Imput(){
+void Read_Camera_Input(){
    
    while (Serial.available()>0){
-   char input = Serial.read(); 
-   if(input == 'r'){
-      Drive(ControlCommands::stop_it, 0); 
-      delay(CAMERA_DELAY); 
-      Serial.print("RED LIGHT"); 
-   }
-      input = Serial.read(); 
-      if(input == 'g'){
-         Serial.flush();
-       break; 
+      char  input = Serial.read(); 
+
+      if(input == 'r'){
+         Drive(ControlCommands::stop_it, 0); 
+         delay(CAMERA_DELAY); 
+         Serial.print("RED LIGHT"); 
+         while (!Serial.available()); // Wait for next character
+         input = Serial.read(); 
+            if(input == 'g'){
+               Serial.flush();
+            break; 
+         }
       }
+      else if(input == 'l'){
+         Drive_direction(1);
+         break; 
+      }
+
+      else if(input == 'R'){
+         Drive_direction(4);
+         break; 
+      }
+
+      else if(input == 'm'){
+         Drive_direction(0);
+         break; 
+      }
+
    }
 
 }
-
 //function for checking weather the car is on the right path. 
-//Since WHITE is the lowest value, we can assume that any value below the desired line
-//is going off course
 int line_direction(float left, float center, float right, colors line_min, colors line_max){
   bool Lir = left >= line_min && left <= line_max; //left in range
   bool Cir = center >= line_min && center <= line_max; // Center in range
