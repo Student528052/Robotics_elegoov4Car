@@ -5,7 +5,7 @@ import time
 from matplotlib import pyplot as plt
 import numpy as np
 
-Ip = "http://192.168.178.221" 
+Ip = "http://192.168.25.123" 
 Stream = Ip + "/"
 Command = Ip + "/command?cmd="
 
